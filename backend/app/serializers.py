@@ -21,7 +21,8 @@ MODEL_STATUS_TEXT = {
 
 def user_out(u: User) -> dict:
     return {"id": u.id, "email": u.email, "full_name": u.full_name, "role": u.role, "org_id": u.org_id,
-            "is_active": u.is_active, "is_demo": u.is_demo}
+            "is_active": u.is_active, "is_demo": u.is_demo, "sso_linked": u.external_subject is not None,
+            "locked_until": u.locked_until, "last_login_at": u.last_login_at}
 
 
 def analysis_out(a: Analysis, *, include_visuals: bool = True) -> dict:

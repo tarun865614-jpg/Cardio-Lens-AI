@@ -8,6 +8,9 @@ export interface User {
   org_id: number;
   is_active: boolean;
   is_demo: boolean;
+  sso_linked?: boolean;
+  locked_until?: string | null;
+  last_login_at?: string | null;
 }
 
 export type CheckStatus = "pass" | "warn" | "fail";

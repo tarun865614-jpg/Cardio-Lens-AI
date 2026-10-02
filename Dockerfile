@@ -15,6 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./
 COPY --from=web /app/frontend/dist /app/frontend/dist
 USER app
-ENV CARDIOLENS_ENV=production CARDIOLENS_SEED_DEMO_DATA=false CARDIOLENS_STORAGE_DIR=/data/recordings
+ENV CARDIOLENS_ENV=production CARDIOLENS_SEED_DEMO_DATA=false CARDIOLENS_SCHEMA_MODE=migrate CARDIOLENS_STORAGE_DIR=/data/recordings
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+# Apply database migrations, then serve. (For multi-replica deployments run the
+# migration as a one-off release job instead and start replicas with uvicorn only.)
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers"]

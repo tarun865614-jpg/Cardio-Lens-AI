@@ -6,7 +6,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from .models import AuditEvent, User, utcnow
@@ -33,6 +33,9 @@ def record(
     details: dict | None = None,
     org_id: int | None = None,
 ) -> AuditEvent:
+    if db.get_bind().dialect.name == "postgresql":
+        # Serialise chain appends across workers/instances for this transaction.
+        db.execute(text("SELECT pg_advisory_xact_lock(724100)"))
     last = db.scalar(select(AuditEvent).order_by(AuditEvent.id.desc()).limit(1))
     prev = last.hash if last else GENESIS
     ts = utcnow()

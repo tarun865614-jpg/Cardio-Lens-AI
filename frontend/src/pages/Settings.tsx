@@ -7,7 +7,8 @@ import { useApi } from "../lib/useApi";
 import { Loading, Notice, PageHeader } from "../components/ui";
 
 function AccessControl() {
-  const { user } = useAuth();
+  const { user, config } = useAuth();
+  const sso = config?.mode === "oidc";
   const { data, setData } = useApi<User[]>("/admin/users");
   const [form, setForm] = useState({ email: "", full_name: "", role: "clinician", password: "" });
   const [err, setErr] = useState<string | null>(null);
@@ -15,7 +16,7 @@ function AccessControl() {
   async function add(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const u = await api.post<User>("/admin/users", form);
+      const u = await api.post<User>("/admin/users", sso ? { ...form, password: undefined } : form);
       setData([...(data ?? []), u]);
       setForm({ email: "", full_name: "", role: "clinician", password: "" });
       setErr(null);
@@ -23,7 +24,7 @@ function AccessControl() {
       setErr((e as Error).message);
     }
   }
-  async function patch(u: User, body: Partial<User>) {
+  async function patch(u: User, body: Partial<User> & { unlock?: boolean }) {
     try {
       const nu = await api.patch<User>(`/admin/users/${u.id}`, body);
       setData((data ?? []).map((x) => (x.id === u.id ? nu : x)));
@@ -56,7 +57,16 @@ function AccessControl() {
                 <tr key={u.id}>
                   <td>
                     {u.full_name}
-                    <span className="block text-xs text-slate-500">{u.email}</span>
+                    <span className="block text-xs text-slate-500">
+                      {u.email}
+                      {u.sso_linked && " · SSO"}
+                      {u.last_login_at && ` · last sign-in ${fmtDate(u.last_login_at)}`}
+                    </span>
+                    {u.locked_until && new Date(u.locked_until.endsWith("Z") ? u.locked_until : u.locked_until + "Z") > new Date() && (
+                      <button className="mt-1 text-xs text-teal-700 underline" onClick={() => patch(u, { unlock: true })}>
+                        Locked after failed sign-ins — unlock
+                      </button>
+                    )}
                   </td>
                   <td>
                     <select className="input" aria-label={`Role for ${u.email}`} value={u.role} disabled={u.id === user?.id} onChange={(e) => patch(u, { role: e.target.value as User["role"] })}>
@@ -83,7 +93,11 @@ function AccessControl() {
             <option value="researcher">Researcher</option>
             <option value="admin">Admin</option>
           </select>
-          <input className="input" placeholder="Initial password (12+ chars)" aria-label="New user password" type="password" minLength={12} required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+          {sso ? (
+            <p className="self-center text-xs text-slate-500">Credentials and MFA are managed by your identity provider; the user links on first sign-in.</p>
+          ) : (
+            <input className="input" placeholder="Initial password (12+ chars)" aria-label="New user password" type="password" minLength={12} required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+          )}
           {err && <p className="text-sm text-issue-700 sm:col-span-2">{err}</p>}
           <button className="btn-primary sm:col-span-2 sm:justify-self-start">Add user</button>
         </form>

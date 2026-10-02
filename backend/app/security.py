@@ -65,6 +65,10 @@ def current_user(
 ) -> User:
     if creds is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Not authenticated")
+    if get_settings().auth_mode == "oidc":
+        from .oidc import resolve_user, verify_access_token
+
+        return resolve_user(db, verify_access_token(creds.credentials))
     try:
         payload = jwt.decode(creds.credentials, get_settings().jwt_secret, algorithms=["HS256"])
     except jwt.PyJWTError:
