@@ -1,0 +1,20 @@
+# Local production-like stack. Put a TLS-terminating reverse proxy in front for any non-local use.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: cardiolens
+      POSTGRES_USER: cardiolens
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes: [pgdata:/var/lib/postgresql/data]
+  app:
+    build: { context: .., dockerfile: Dockerfile }
+    depends_on: [db]
+    ports: ["8000:8000"]
+    environment:
+      CARDIOLENS_DATABASE_URL: postgresql+psycopg://cardiolens:${POSTGRES_PASSWORD}@db:5432/cardiolens
+      CARDIOLENS_JWT_SECRET: ${CARDIOLENS_JWT_SECRET:?set CARDIOLENS_JWT_SECRET}
+      CARDIOLENS_STORAGE_KEY: ${CARDIOLENS_STORAGE_KEY:?set CARDIOLENS_STORAGE_KEY}
+      CARDIOLENS_CORS_ORIGINS: ${CARDIOLENS_CORS_ORIGINS:-https://cardiolens.example.org}
+    volumes: [recordings:/data/recordings]
+volumes: { pgdata: {}, recordings: {} }

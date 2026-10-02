@@ -141,3 +141,16 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# CardioLens
+backend/data/
+*.db
+*.sqlite
+frontend/dist/
+frontend/node_modules/
+frontend/test-results/
+frontend/playwright-report/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env

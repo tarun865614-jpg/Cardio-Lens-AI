@@ -1,0 +1,20 @@
+{
+  "name": "example-murmur-screener",
+  "version": "1.0.0",
+  "intended_use": "EXAMPLE ONLY. Screening aid for murmur detection in recordings from an electronic stethoscope, for review by a clinician.",
+  "categories": [
+    {"id": "absent", "label": "Murmur not detected (screening)"},
+    {"id": "present", "label": "Murmur detected (screening)"}
+  ],
+  "validation_status": "research_only",
+  "validation_evidence": null,
+  "calibrated": false,
+  "calibration_method": null,
+  "exclusive_categories": true,
+  "input_sample_rate": 2000,
+  "min_duration_s": 5.0,
+  "supported_devices": ["electronic_stethoscope"],
+  "supported_sites": ["aortic", "pulmonic", "tricuspid", "mitral"],
+  "training_datasets": [],
+  "known_limitations": ["Example card — replace every field with the real model's documented properties."]
+}
