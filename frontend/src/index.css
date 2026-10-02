@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --color-navy-950: #071427;
+  --color-navy-900: #0b1f3a;
+  --color-navy-800: #13294b;
+  --color-navy-700: #1d3a63;
+  --color-navy-600: #2c4f80;
+
+  --color-teal-50: #effaf8;
+  --color-teal-100: #d5f0ec;
+  --color-teal-300: #8fd0c7;
+  --color-teal-500: #3c9a91;
+  --color-teal-600: #2f7f78;
+  --color-teal-700: #266661;
+
+  /* Technical / recording issues */
+  --color-issue-50: #fdf6ec;
+  --color-issue-200: #f2d7a6;
+  --color-issue-700: #8a5a12;
+  /* Clinical follow-up flags (deliberately not alarm red) */
+  --color-flag-50: #f3f1fb;
+  --color-flag-200: #d6cff0;
+  --color-flag-700: #4f3f99;
+  /* Experimental output */
+  --color-exp-50: #fff8e6;
+  --color-exp-300: #f0c75e;
+  --color-exp-800: #6e4f00;
+}
+
+html, body, #root { height: 100%; }
+body { @apply bg-slate-50 text-navy-900 antialiased; }
+
+:focus-visible { outline: 3px solid var(--color-teal-500); outline-offset: 2px; }
+
+@utility card { @apply rounded-xl border border-slate-200 bg-white shadow-sm; }
+@utility card-h { @apply flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-5; }
+@utility card-b { @apply px-4 py-4 sm:px-5; }
+@utility h-title { @apply text-sm font-semibold tracking-wide text-navy-800; }
+@utility btn { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50; }
+@utility btn-primary { @apply btn bg-navy-900 text-white hover:bg-navy-700; }
+@utility btn-teal { @apply btn bg-teal-600 text-white hover:bg-teal-700; }
+@utility btn-ghost { @apply btn border border-slate-300 bg-white text-navy-800 hover:bg-slate-50; }
+@utility btn-danger { @apply btn border border-issue-200 bg-white text-issue-700 hover:bg-issue-50; }
+@utility input { @apply block min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-navy-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none; }
+@utility label { @apply mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600; }
+@utility badge { @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium; }
+@utility table { @apply w-full text-left text-sm; }
+.table th { @apply border-b border-slate-200 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500; }
+.table td { @apply border-b border-slate-100 px-3 py-2 align-top; }
