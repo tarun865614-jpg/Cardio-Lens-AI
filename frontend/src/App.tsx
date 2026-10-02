@@ -5,7 +5,7 @@ import { Loading } from "./components/ui";
 import { CLINICAL, homeFor, RESEARCH, useAuth } from "./lib/auth";
 import type { Role } from "./lib/types";
 import Dashboard from "./pages/Dashboard";
-import Login from "./pages/Login";
+import Login, { SsoCallback } from "./pages/Login";
 import NewRecording from "./pages/NewRecording";
 import { PatientDetail, PatientList } from "./pages/Patients";
 import RecordingDetail from "./pages/RecordingDetail";
@@ -29,6 +29,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/auth/callback" element={<SsoCallback />} />
       <Route
         element={
           <Guard>

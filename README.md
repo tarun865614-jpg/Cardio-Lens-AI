@@ -20,6 +20,7 @@ an evaluation lab built for a credible path to clinical validation.
 | Research lab | Dataset registry with provenance/licence, immutable model registry, evaluation upload with leakage guards; sensitivity/specificity/PPV/NPV (Wilson CIs), ROC + AUC (patient-level bootstrap CI), confusion matrix, calibration (ECE, Brier, slope), subgroup/device/environment breakdown, failed-recording rate; explicit "not evaluated" states |
 | Baseline | `python -m app.research.baseline` — transparent features + logistic regression, patient-level split, writes lab-ready predictions |
 | Security & privacy | Encrypted audio at rest, RBAC (clinician / researcher / admin), org isolation, consent gate, hash-chained audit log + verification, deletion & erasure, retention purge |
+| Production | **SSO with MFA** (any OIDC IdP: Entra ID, Okta, Auth0, Keycloak — Authorization Code + PKCE), login lockout in local mode, **S3 storage with SSE-KMS** on top of client-side encryption, **Alembic migrations** with a startup schema check — see [`docs/PRODUCTION_SETUP.md`](docs/PRODUCTION_SETUP.md) |
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (architecture, schema, API contracts, screens),
 [`docs/MODEL_AND_VALIDATION.md`](docs/MODEL_AND_VALIDATION.md) and [`docs/SECURITY_PRIVACY.md`](docs/SECURITY_PRIVACY.md).
@@ -46,9 +47,9 @@ Demo accounts (development only, synthetic data, password `demo-password-123`):
 ## Tests
 
 ```bash
-cd backend && python -m pytest                       # 77 tests: quality, inference safety, metrics, API, RBAC, isolation
-cd frontend && npm test                              # 9 unit/component tests: WAV encoder, labelling, metric formatting
-cd frontend && npm run build && npx playwright test  # 13 end-to-end tests (desktop + mobile, axe accessibility)
+cd backend && python -m pytest                       # 104 tests: quality, inference safety, metrics, API, RBAC, isolation, SSO/MFA, S3, migrations
+cd frontend && npm test                              # 16 unit/component tests: WAV encoder, labelling, metrics, PKCE/SSO callback
+cd frontend && npm run build && npx playwright test  # 16 end-to-end tests (desktop, mobile, SSO via a mock IdP; axe accessibility)
 ```
 
 E2E starts the real backend serving the built SPA with a fresh seeded database. If your Playwright version doesn't match
@@ -63,8 +64,9 @@ docker build -t cardiolens .
 POSTGRES_PASSWORD=... CARDIOLENS_JWT_SECRET=... CARDIOLENS_STORAGE_KEY=... docker compose -f deploy/docker-compose.yml up
 ```
 
-The container serves API + SPA on port 8000. Production mode refuses to start with a default JWT secret, without a storage
-key, or with demo seeding enabled. Terminate TLS in front of it, schedule `POST /api/v1/admin/retention/purge` daily, and
+The container applies database migrations, then serves API + SPA on port 8000. Production mode refuses to start with a
+default JWT secret, without a storage key, with demo seeding enabled, or on an un-migrated database. Configure SSO, S3 and
+migrations with [`docs/PRODUCTION_SETUP.md`](docs/PRODUCTION_SETUP.md). Terminate TLS in front of it, schedule `POST /api/v1/admin/retention/purge` daily, and
 review `docs/SECURITY_PRIVACY.md` before handling real data.
 
 ### Environment variables
@@ -76,7 +78,17 @@ review `docs/SECURITY_PRIVACY.md` before handling real data.
 | `CARDIOLENS_JWT_SECRET` | dev placeholder | **required** in production (≥32 chars) |
 | `CARDIOLENS_JWT_TTL_MINUTES` | `60` | |
 | `CARDIOLENS_STORAGE_KEY` | derived (dev only) | **required** in production; Fernet key |
-| `CARDIOLENS_STORAGE_DIR` | `./data/recordings` | encrypted audio objects |
+| `CARDIOLENS_STORAGE_DIR` | `./data/recordings` | encrypted audio objects (local backend) |
+| `CARDIOLENS_STORAGE_BACKEND` | `local` | `local` · `s3` |
+| `CARDIOLENS_S3_BUCKET` / `_PREFIX` / `_REGION` / `_ENDPOINT_URL` / `_KMS_KEY_ID` | — | S3 backend; KMS key enables SSE-KMS |
+| `CARDIOLENS_SCHEMA_MODE` | `create` | `migrate` required in production |
+| `CARDIOLENS_AUTH_MODE` | `local` | `local` · `oidc` |
+| `CARDIOLENS_LOGIN_MAX_FAILURES` / `_LOCKOUT_MINUTES` | `5` / `15` | local-mode lockout |
+| `CARDIOLENS_OIDC_ISSUER` / `_AUDIENCE` / `_CLIENT_ID` | — | required for `oidc` |
+| `CARDIOLENS_OIDC_SCOPES` | `openid profile email` | |
+| `CARDIOLENS_OIDC_ROLE_CLAIM` / `_ROLE_MAP` | `roles` / identity map | claim path and `idp-value:role` pairs |
+| `CARDIOLENS_OIDC_REQUIRE_MFA` | `true` | require MFA in the `amr` claim |
+| `CARDIOLENS_OIDC_AUTO_PROVISION` / `_DEFAULT_ORG` | `false` / — | create users on first sign-in |
 | `CARDIOLENS_MAX_UPLOAD_MB` | `20` | |
 | `CARDIOLENS_CORS_ORIGINS` | `http://localhost:5173` | comma-separated |
 | `CARDIOLENS_SEED_DEMO_DATA` | `true` | must be `false` in production |
@@ -97,5 +109,6 @@ review `docs/SECURITY_PRIVACY.md` before handling real data.
 | Calibrated probabilities | Requires calibration assessment on external data. |
 | Tuned quality thresholds | Need human-labelled quality data and per-device false-rejection analysis. |
 | Smartphone-microphone suitability | Requires device-specific validation; current UI states the limitation. |
-| OIDC/MFA, KMS, cloud object storage, Alembic migrations, EHR/FHIR | Integration work for production. |
+| EHR/FHIR integration | Needs a target EHR and its integration terms. |
+| Live IdP / AWS account wiring | SSO and S3 are implemented and tested against a mock IdP and mocked S3; connecting your real tenant and bucket is configuration (see `docs/PRODUCTION_SETUP.md`). |
 | Regulatory clearance, DPIA, clinical governance | Required before any patient-facing or clinical use. |

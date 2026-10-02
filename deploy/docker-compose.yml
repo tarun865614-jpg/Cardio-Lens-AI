@@ -16,5 +16,17 @@ services:
       CARDIOLENS_JWT_SECRET: ${CARDIOLENS_JWT_SECRET:?set CARDIOLENS_JWT_SECRET}
       CARDIOLENS_STORAGE_KEY: ${CARDIOLENS_STORAGE_KEY:?set CARDIOLENS_STORAGE_KEY}
       CARDIOLENS_CORS_ORIGINS: ${CARDIOLENS_CORS_ORIGINS:-https://cardiolens.example.org}
+      # Object storage: local volume by default; set STORAGE_BACKEND=s3 + bucket/KMS for cloud.
+      CARDIOLENS_STORAGE_BACKEND: ${CARDIOLENS_STORAGE_BACKEND:-local}
+      CARDIOLENS_S3_BUCKET: ${CARDIOLENS_S3_BUCKET:-}
+      CARDIOLENS_S3_REGION: ${CARDIOLENS_S3_REGION:-}
+      CARDIOLENS_S3_KMS_KEY_ID: ${CARDIOLENS_S3_KMS_KEY_ID:-}
+      # Sign-in: local passwords by default; set AUTH_MODE=oidc + IdP settings for SSO with MFA.
+      CARDIOLENS_AUTH_MODE: ${CARDIOLENS_AUTH_MODE:-local}
+      CARDIOLENS_OIDC_ISSUER: ${CARDIOLENS_OIDC_ISSUER:-}
+      CARDIOLENS_OIDC_AUDIENCE: ${CARDIOLENS_OIDC_AUDIENCE:-}
+      CARDIOLENS_OIDC_CLIENT_ID: ${CARDIOLENS_OIDC_CLIENT_ID:-}
+      CARDIOLENS_OIDC_ROLE_CLAIM: ${CARDIOLENS_OIDC_ROLE_CLAIM:-roles}
+      CARDIOLENS_OIDC_ROLE_MAP: ${CARDIOLENS_OIDC_ROLE_MAP:-clinician:clinician,researcher:researcher,admin:admin}
     volumes: [recordings:/data/recordings]
 volumes: { pgdata: {}, recordings: {} }

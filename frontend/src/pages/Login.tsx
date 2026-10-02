@@ -1,11 +1,45 @@
-import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { homeFor, useAuth } from "../lib/auth";
 
 const DEMO = import.meta.env.DEV || import.meta.env.VITE_SHOW_DEMO_ACCOUNTS === "true";
 
+export function SsoCallback() {
+  const { finishSso, config } = useAuth();
+  const nav = useNavigate();
+  const loc = useLocation();
+  const [err, setErr] = useState<string | null>(null);
+  const ran = useRef(false);
+  useEffect(() => {
+    if (!config || ran.current) return;
+    ran.current = true; // the authorization code is single-use
+    finishSso(loc.search)
+      .then((to) => nav(to, { replace: true }))
+      .catch((e: Error) => setErr(e.message));
+  }, [config, finishSso, loc.search, nav]);
+  return (
+    <div className="flex min-h-full items-center justify-center bg-navy-900 px-4">
+      <div className="card card-b max-w-md text-sm">
+        {err ? (
+          <>
+            <p role="alert" className="font-semibold text-issue-700">
+              Sign-in failed
+            </p>
+            <p className="mt-1 text-slate-700">{err}</p>
+            <a href="/login" className="btn-primary mt-4">
+              Back to sign-in
+            </a>
+          </>
+        ) : (
+          <p role="status">Completing secure sign-in…</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Login() {
-  const { user, login } = useAuth();
+  const { user, login, loginSso, config } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -37,6 +71,35 @@ export default function Login() {
           <h1 className="mt-3 text-2xl font-semibold">CardioLens AI</h1>
           <p className="mt-1 text-sm text-teal-100">Heart-sound capture, quality analysis and clinician review</p>
         </div>
+        {config?.mode === "oidc" ? (
+          <div className="card card-b space-y-4">
+            <button
+              className="btn-primary w-full"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                setErr(null);
+                try {
+                  await loginSso();
+                } catch (e) {
+                  setErr((e as Error).message);
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy ? "Redirecting…" : "Sign in with your organisation (SSO)"}
+            </button>
+            {err && (
+              <p role="alert" className="text-sm text-issue-700">
+                {err}
+              </p>
+            )}
+            <p className="text-xs text-slate-500">
+              Multi-factor authentication is required. Research prototype — not a medical device and not cleared for diagnostic use. Access is
+              logged.
+            </p>
+          </div>
+        ) : (
         <form onSubmit={submit} className="card card-b space-y-4">
           <div>
             <label htmlFor="email" className="label">
@@ -62,7 +125,8 @@ export default function Login() {
             Research prototype. Not a medical device and not cleared for diagnostic use. Access is logged.
           </p>
         </form>
-        {DEMO && (
+        )}
+        {DEMO && config?.mode !== "oidc" && (
           <div className="mt-4 rounded-lg bg-navy-800 p-4 text-xs text-slate-200">
             <p className="mb-2 font-semibold text-white">Development demo accounts (synthetic data only)</p>
             {["clinician", "researcher", "admin"].map((r) => (

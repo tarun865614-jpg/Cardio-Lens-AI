@@ -51,7 +51,7 @@ configuration (`CARDIOLENS_MODEL_BACKEND`, `CARDIOLENS_MODEL_SERVICE_URL`, `CARD
 | Table | Key columns | Purpose |
 |---|---|---|
 | `organizations` | id, name, retention_days | Tenant boundary for isolation and retention policy. |
-| `users` | id, org_id, email, role (`clinician`/`researcher`/`admin`), password_hash (scrypt), is_active | Accounts / RBAC. |
+| `users` | id, org_id, email, role (`clinician`/`researcher`/`admin`), password_hash (scrypt; `!sso-only` for SSO users), is_active, external_subject (IdP `iss\|sub`), failed_logins, locked_until, last_login_at | Accounts / RBAC / SSO linkage / lockout. |
 | `patients` | id, org_id, pseudonym (`CL-XXXXXX`), external_ref?, birth_year?, sex?, is_synthetic, deleted_at | Minimal data; generated identifier. |
 | `recordings` | id, org_id, patient_id, storage_key, sha256, size, sample_rate, channels, duration_s, device_type, auscultation_site, environment, consent_confirmed, consent_version, is_demo, quality_status, review_status, retention_until, deleted_at | Audio metadata; audio itself is in encrypted storage. |
 | `analyses` | id, recording_id, pipeline_version, quality_report (JSON), signal_summary (JSON), model_status, result_tier, model_name, model_version, model_output (JSON), error | Every analysis run is kept (reproducibility). |
@@ -61,7 +61,7 @@ configuration (`CARDIOLENS_MODEL_BACKEND`, `CARDIOLENS_MODEL_SERVICE_URL`, `CARD
 | `model_versions` | name+version (unique, immutable), intended_use, categories, validation_status, validation_evidence, training_datasets, weights_sha256 | Model registry. |
 | `evaluation_runs` | model_version_id, dataset_id, split_name, is_external, threshold, metrics (JSON), warnings | Evaluation lab results. |
 
-Tables are created with `create_all` for the prototype. Add Alembic migrations before the first production deployment.
+Schema is managed with Alembic (`backend/migrations`). Development may use `create_all` (`CARDIOLENS_SCHEMA_MODE=create`); production requires `migrate`.
 
 ## 4. API contracts (v1)
 
@@ -70,7 +70,8 @@ Other organisations' resources return **404** (not 403) so existence is not reve
 
 | Method & path | Roles | Description |
 |---|---|---|
-| `POST /auth/login` | — | `{email,password}` → `{access_token, user}` (failures audited) |
+| `GET /auth/config` | — | `{mode: local}` or `{mode: oidc, issuer, client_id, audience, scopes}` (no secrets) |
+| `POST /auth/login` | — | Local mode only: `{email,password}` → `{access_token, user}`; failures audited; lockout → 429 |
 | `GET /auth/me` | any | Current user |
 | `GET /system/status` | any | Analysis mode, pipeline & contract versions, ffmpeg availability |
 | `GET /dashboard` | clinician, admin | Counts, recent, pending, flagged, quality issues, system |
@@ -118,7 +119,7 @@ plus optional subgroup columns (`device`, `environment`, `site`, `age_group`, `s
 
 | Screen | Route | Roles | Contents |
 |---|---|---|---|
-| Login | `/login` | — | Sign-in; dev-only demo account shortcuts |
+| Login | `/login`, `/auth/callback` | — | Password form (local) or "Sign in with your organisation" (SSO + PKCE); dev-only demo shortcuts |
 | Dashboard | `/` | clinician, admin | KPI tiles, pending reviews, flagged cases, technical quality issues, system status |
 | New Recording | `/record` | clinician, admin | Patient select/create, device/site/environment, urgent-symptom guidance, mic capture with live level/clipping/waveform, file import, consent, upload |
 | Audio Analysis | `/recordings/:id` | clinician, admin | Playback, waveform with seek and model segments, spectrogram, measurements, per-window quality, quality checklist, AI panel (tiered), review form + history, export, re-run, delete |
